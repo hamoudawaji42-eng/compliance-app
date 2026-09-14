@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام فحص الامتثال وحساب المخالفات</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; text-align: right; }
+        .container { max-width: 900px; margin: 0 auto; }
+        .header-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+        .header-row svg { flex-shrink: 0; }
+        .header-row h2 { margin: 0; }
+        .card-box { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; }
+        .dashboard { display: flex; gap: 15px; margin-bottom: 25px; }
+        .card { flex: 1; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center; }
+        .card h3 { margin: 0 0 10px 0; color: #555; font-size: 16px; }
+        .card .number { font-size: 28px; font-weight: bold; color: #2c3e50; }
+        .card.compliance .number { color: #27ae60; }
+        .card.fine .number { color: #c0392b; }
+        .violations-list { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .violation-item { display: flex; align-items: center; padding: 12px; border-bottom: 1px solid #eee; }
+        .violation-item:hover { background-color: #f9f9f9; }
+        .violation-item input { width: 20px; height: 20px; margin-left: 15px; cursor: pointer; }
+        .violation-info { flex: 1; }
+        .category-tag { background: #e8f4fd; color: #2980b9; padding: 3px 8px; border-radius: 4px; font-size: 12px; margin-left: 10px; }
+        .warning-tag { background: #e74c3c; color: white; padding: 4px 10px; border-radius: 4px; font-size: 13px; margin-left: 10px; font-weight: bold; }
+        .fine-tag { font-weight: bold; color: #e74c3c; font-size: 18px; }
+        .btn-submit { background: #2980b9; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 20px; font-weight: bold; }
+        .btn-submit:hover { background: #3498db; }
+        .btn-print { background: #27ae60; color: white; border: none; padding: 12px 25px; font-size: 16px; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 15px; font-weight: bold; }
+        .nav-link { display: inline-block; margin-bottom: 15px; background: #34495e; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; }
+        .print-only-title { display: none; }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .btn-submit, .btn-print, .nav-link, .tier-selector select { display: none !important; }
+            .container { max-width: 100%; }
+            .card { border: 1px solid #ddd; box-shadow: none; }
+            .violation-item.hide-on-print { display: none !important; }
+            .print-only-title { display: block; margin: 15px 0; font-size: 18px; border-bottom: 2px solid #2c3e50; padding-bottom: 8px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <a href="/clients" class="nav-link">📁 السجلات وتقارير العملاء الحالية</a>
+
+    <div class="header-row">
+        <svg width="48" height="56" viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="shieldGrad1" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#2ecc71"/>
+                    <stop offset="100%" stop-color="#219150"/>
+                </linearGradient>
+            </defs>
+            <path d="M60 8 L104 24 V64 C104 94 86 116 60 128 C34 116 16 94 16 64 V24 Z"
+                  fill="url(#shieldGrad1)" stroke="#1e8449" stroke-width="2"/>
+            <path d="M60 16 L96 29 V64 C96 89 81 108 60 119 C39 108 24 89 24 64 V29 Z"
+                  fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.35"/>
+            <rect x="42" y="42" width="36" height="46" rx="5" fill="#ffffff" stroke="#e67e22" stroke-width="2.5"/>
+            <rect x="53" y="37" width="14" height="9" rx="3" fill="#e67e22"/>
+            <line x1="49" y1="56" x2="71" y2="56" stroke="#e67e22" stroke-width="2.2" stroke-linecap="round"/>
+            <line x1="49" y1="64" x2="71" y2="64" stroke="#e67e22" stroke-width="2.2" stroke-linecap="round"/>
+            <line x1="49" y1="72" x2="65" y2="72" stroke="#e67e22" stroke-width="2.2" stroke-linecap="round"/>
+            <line x1="49" y1="80" x2="60" y2="80" stroke="#e67e22" stroke-width="2.2" stroke-linecap="round"/>
+            <path d="M50 60 L57 68 L72 50"
+                  fill="none" stroke="#2980b9" stroke-width="4.5"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h2>نظام فحص الامتثال وحساب الغرامات</h2>
+    </div>
+
+    <form method="POST">
+        <div class="card-box">
+            <h3>بيانات العميل</h3>
+            <div style="display: flex; gap: 15px;">
+                <div class="form-group" style="flex: 1;">
+                    <label for="client_name">اسم العميل/المسؤول *</label>
+                    <input type="text" name="client_name" id="client_name" value="{{ client_name }}" required placeholder="أدخل اسم العميل">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label for="company_name">اسم المنشأة</label>
+                    <input type="text" name="company_name" id="company_name" value="{{ company_name }}" placeholder="أدخل اسم المنشأة">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label for="phone">رقم التواصل *</label>
+                    <input type="text" name="phone" id="phone" value="{{ phone }}" required placeholder="05xxxxxxxx">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="company_tier">حجم المنشأة (عدد العمال):</label>
+                <select name="company_tier" id="company_tier" onchange="this.form.submit()">
+                    <option value="c" {% if company_tier == 'c' %}selected{% endif %}>فئة (ج): 20 عامل فأقل</option>
+                    <option value="b" {% if company_tier == 'b' %}selected{% endif %}>فئة (ب): من 21 إلى 49 عامل</option>
+                    <option value="a" {% if company_tier == 'a' %}selected{% endif %}>فئة (أ): 50 عامل فأعلى</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="dashboard">
+            <div class="card compliance">
+                <h3>نسبة الامتثال</h3>
+                <div class="number">{{ compliance_rate }}%</div>
+            </div>
+            <div class="card fine">
+                <h3>إجمالي الغرامات</h3>
+                <div class="number">{{ "{:,}".format(total_fine) }} ريال</div>
+            </div>
+            <div class="card">
+                <h3>المخالفات المرصودة</h3>
+                <div class="number">{{ selected_count }} <span style="font-size: 16px; color: #777;">من أصل</span> {{ total_available }}</div>
+            </div>
+        </div>
+
+        <button type="button" onclick="prepareAndPrint()" class="btn-print">📄 طباعة التقرير / تصدير PDF</button>
+
+        <div class="violations-list" style="margin-top: 20px;">
+            <h3 class="print-only-title">المخالفات المرصودة أثناء الفحص</h3>
+            <h3 class="no-print-title">اختر المخالفات المرصودة أثناء الفحص:</h3>
+            {% for v in violations %}
+                <div class="violation-item" data-id="{{ v.id }}">
+                    <input type="checkbox" name="violations" value="{{ v.id }}" id="v_{{ v.id }}" {% if v.id in selected_ids %}checked{% endif %}>
+                    <label for="v_{{ v.id }}" class="violation-info">
+                        <span class="category-tag">{{ v.category }}</span>
+                        {% if v.warning %}<span class="warning-tag">⚠ يوجد إنذار</span>{% endif %}
+                        <span>{{ v.title }}</span>
+                    </label>
+                    <span class="fine-tag">{{ v.fine }} ريال</span>
+                </div>
+            {% endfor %}
+            <button type="submit" name="calculate" value="1" class="btn-submit">حساب النتيجة وحفظ التقرير 📊</button>
+        </div>
+    </form>
+</div>
+
+<script>
+function prepareAndPrint() {
+    document.querySelectorAll('.violation-item').forEach(function (item) {
+        var checkbox = item.querySelector('input[type="checkbox"]');
+        if (checkbox && !checkbox.checked) {
+            item.classList.add('hide-on-print');
+        } else {
+            item.classList.remove('hide-on-print');
+        }
+    });
+    window.print();
+}
+
+window.onafterprint = function () {
+    document.querySelectorAll('.violation-item.hide-on-print').forEach(function (item) {
+        item.classList.remove('hide-on-print');
+    });
+};
+</script>
+
+</body>
+</html>
+
