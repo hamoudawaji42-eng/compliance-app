@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>سجلات العملاء المخزنة</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; text-align: right; }
+        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .header-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+        .header-row svg { flex-shrink: 0; }
+        .header-row h2 { margin: 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
+        th { background-color: #2c3e50; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
+        .search-box input { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #ccc; }
+        .search-box button { padding: 10px 20px; background: #2980b9; color: white; border: none; border-radius: 6px; cursor: pointer; }
+        .btn-back { display: inline-block; margin-bottom: 15px; color: #2980b9; text-decoration: none; font-weight: bold; }
+        .btn-view { display: inline-block; background: #27ae60; color: white; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; }
+        .btn-view:hover { background: #219150; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <a href="/" class="btn-back">⬅ العودة إلى الحاسبة الرئيسية</a>
+
+    <div class="header-row">
+        <svg width="40" height="46" viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="shieldGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#2ecc71"/>
+                    <stop offset="100%" stop-color="#219150"/>
+                </linearGradient>
+            </defs>
+            <path d="M60 8 L104 24 V64 C104 94 86 116 60 128 C34 116 16 94 16 64 V24 Z"
+                  fill="url(#shieldGrad2)" stroke="#1e8449" stroke-width="2"/>
+            <path d="M60 16 L96 29 V64 C96 89 81 108 60 119 C39 108 24 89 24 64 V29 Z"
+                  fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.35"/>
+            <rect x="42" y="42" width="36" height="46" rx="5" fill="#ffffff" stroke="#e67e22" stroke-width="2.5"/>
+            <rect x="53" y="37" width="14" height="9" rx="3" fill="#e67e22"/>
+            <line x1="49" y1="56" x2="71" y2="56" stroke="#e67e22" stroke-width="2.2" stroke-linecap="round"/>
+            <line x1="49" y1="64" x2="71" y2="64" stroke="#e67e22" stroke-width="2.2" stroke-linecap="round"/>
+            <line x1="49" y1="72" x2="65" y2="72" stroke="#e67e22" stroke-width="2.2" stroke-linecap="round"/>
+            <line x1="49" y1="80" x2="60" y2="80" stroke="#e67e22" stroke-width="2.2" stroke-linecap="round"/>
+            <path d="M50 60 L57 68 L72 50"
+                  fill="none" stroke="#2980b9" stroke-width="4.5"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h2>سجلات العملاء المقلّصة بالفحص السليم</h2>
+    </div>
+
+    <form method="GET" action="/clients" class="search-box">
+        <input type="text" name="search" placeholder="ابحث باسم العميل، اسم المنشأة، أو رقم الهاتف..." value="{{ search_query }}">
+        <button type="submit">بحث 🔍</button>
+    </form>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>اسم العميل</th>
+                <th>المنشأة</th>
+                <th>رقم التواصل</th>
+                <th>الفئة</th>
+                <th>عدد المخالفات</th>
+                <th>إجمالي الغرامة</th>
+                <th>نسبة الامتثال</th>
+                <th>التاريخ</th>
+                <th>إجراء</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in records %}
+            <tr>
+                <td>{{ row[0] }}</td>
+                <td>{{ row[1] }}</td>
+                <td>{{ row[2] }}</td>
+                <td>{{ row[3] }}</td>
+                <td>{{ row[4] }}</td>
+                <td>{{ row[5] }}</td>
+                <td>{{ "{:,}".format(row[6]) }} ريال</td>
+                <td>{{ row[7] }}</td>
+                <td>{{ row[8] }}</td>
+                <td><a href="{{ url_for('view_report', record_id=row[0]) }}" class="btn-view">عرض / طباعة</a></td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="10">لا توجد سجلات مطابقة للبحث</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>
