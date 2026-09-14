@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقرير الفحص - {{ record.client_name }}</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; text-align: right; }
+        .container { max-width: 900px; margin: 0 auto; }
+        .header-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+        .header-row svg { flex-shrink: 0; }
+        .header-row h2 { margin: 0; }
+        .card-box { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .card-box h3 { margin-top: 0; }
+        .info-row { display: flex; gap: 25px; flex-wrap: wrap; }
+        .info-item { min-width: 160px; }
+        .info-item span.label { display: block; font-size: 13px; color: #777; margin-bottom: 4px; }
+        .info-item span.value { font-weight: bold; font-size: 16px; color: #2c3e50; }
+        .dashboard { display: flex; gap: 15px; margin-bottom: 25px; }
+        .card { flex: 1; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center; }
+        .card h3 { margin: 0 0 10px 0; color: #555; font-size: 16px; }
+        .card .number { font-size: 28px; font-weight: bold; color: #2c3e50; }
+        .card.compliance .number { color: #27ae60; }
+        .card.fine .number { color: #c0392b; }
+        .violations-list { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .violation-item { display: flex; align-items: center; padding: 12px; border-bottom: 1px solid #eee; }
+        .violation-info { flex: 1; }
+        .category-tag { background: #e8f4fd; color: #2980b9; padding: 3px 8px; border-radius: 4px; font-size: 12px; margin-left: 10px; }
+        .warning-tag { background: #e74c3c; color: white; padding: 4px 10px; border-radius: 4px; font-size: 13px; margin-left: 10px; font-weight: bold; }
+        .fine-tag { font-weight: bold; color: #e74c3c; font-size: 18px; }
+        .btn-print { background: #27ae60; color: white; border: none; padding: 12px 25px; font-size: 16px; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 15px; font-weight: bold; }
+        .nav-link { display: inline-block; margin-bottom: 15px; background: #34495e; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; }
+        .empty-note { text-align: center; color: #999; padding: 20px; }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .btn-print, .nav-link { display: none !important; }
+            .container { max-width: 100%; }
+            .card { border: 1px solid #ddd; box-shadow: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <a href="/clients" class="nav-link">⬅ العودة إلى السجلات</a>
+
+    <div class="header-row">
+        <svg width="40" height="46" viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="shieldGrad3" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#2ecc71"/>
+                    <stop offset="100%" stop-color="#219150"/>
+                </linearGradient>
+            </defs>
+            <path d="M60 8 L104 24 V64 C104 94 86 116 60 128 C34 116 16 94 16 64 V24 Z"
+                  fill="url(#shieldGrad3)" stroke="#1e8449" stroke-width="2"/>
+            <path d="M60 16 L96 29 V64 C96 89 81 108 60 119 C39 108 24 89 24 64 V29 Z"
+                  fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.35"/>
+            <rect x="42" y="42" width="36" height="46" rx="5" fill="#ffffff" stroke="#e67e22" stroke-width="2.5"/>
+            <rect x="53" y="37" width="14" height="9" rx="3" fill="#e67e22"/>
+            <line x1="49" y1="56" x2="71" y2="56" stroke="#e67e22" stroke-width="2.2" stroke-linecap="round"/>
+            <line x1="49" y1="64" x2="71" y2="64" stroke="#e67e22" stroke-width="2.2" stroke-linecap="round"/>
+            <line x1="49" y1="72" x2="65" y2="72" stroke="#e67e22" stroke-width="2.2" stroke-linecap="round"/>
+            <line x1="49" y1="80" x2="60" y2="80" stroke="#e67e22" stroke-width="2.2" stroke-linecap="round"/>
+            <path d="M50 60 L57 68 L72 50"
+                  fill="none" stroke="#2980b9" stroke-width="4.5"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h2>تقرير فحص سابق</h2>
+    </div>
+
+    <div class="card-box">
+        <h3>بيانات العميل</h3>
+        <div class="info-row">
+            <div class="info-item">
+                <span class="label">اسم العميل</span>
+                <span class="value">{{ record.client_name }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">اسم المنشأة</span>
+                <span class="value">{{ record.company_name }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">رقم التواصل</span>
+                <span class="value">{{ record.phone }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">الفئة</span>
+                <span class="value">{{ record.company_tier }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">تاريخ الفحص</span>
+                <span class="value">{{ record.created_at }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard">
+        <div class="card compliance">
+            <h3>نسبة الامتثال</h3>
+            <div class="number">{{ record.compliance_rate }}</div>
+        </div>
+        <div class="card fine">
+            <h3>إجمالي الغرامات</h3>
+            <div class="number">{{ "{:,}".format(record.total_fine) }} ريال</div>
+        </div>
+        <div class="card">
+            <h3>عدد المخالفات المرصودة</h3>
+            <div class="number">{{ record.violations_count }}</div>
+        </div>
+    </div>
+
+    <button type="button" onclick="window.print()" class="btn-print">📄 طباعة التقرير / تصدير PDF</button>
+
+    <div class="violations-list" style="margin-top: 20px;">
+        <h3>المخالفات المرصودة وقت الفحص:</h3>
+        {% for v in violations %}
+            <div class="violation-item">
+                <span class="violation-info">
+                    <span class="category-tag">{{ v.category }}</span>
+                    {% if v.warning %}<span class="warning-tag">⚠ يوجد إنذار</span>{% endif %}
+                    <span>{{ v.title }}</span>
+                </span>
+                <span class="fine-tag">{{ v.fine }} ريال</span>
+            </div>
+        {% else %}
+            <div class="empty-note">لا توجد تفاصيل مخالفات محفوظة لهذا السجل (سجل قديم قبل تفعيل هذه الميزة).</div>
+        {% endfor %}
+    </div>
+</div>
+
+</body>
+</html>
