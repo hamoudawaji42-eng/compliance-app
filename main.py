@@ -1,7 +1,7 @@
 import os
 import re
 import json
-import sqlite3
+import psycopg2
 import pandas as pd
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, abort
@@ -11,33 +11,34 @@ app = Flask(__name__)
 # تحديد المسار المطلق للملفات لضمان عملها بشكل صحيح على خوادم النشر (Render)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 EXCEL_FILE = os.path.join(BASE_DIR, "data.xlsx")
-DB_FILE = os.path.join(BASE_DIR, "clients_data.db")
+# رابط قاعدة بيانات Supabase (يتخزن في Render كمتغير باسم DATABASE_URL)
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+
+def get_conn():
+    """فتح اتصال بقاعدة بيانات Supabase"""
+    return psycopg2.connect(DATABASE_URL, sslmode="require")
 
 def init_db():
     """إنشاء قاعدة البيانات وجدول العملاء والسجلات"""
-    conn = sqlite3.connect(DB_FILE)
+    conn = get_conn()
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS audit_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             client_name TEXT NOT NULL,
             company_name TEXT NOT NULL,
             phone TEXT NOT NULL,
             company_tier TEXT,
             violations_count INTEGER,
-            total_fine REAL,
+            total_fine DOUBLE PRECISION,
             compliance_rate TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            violations_detail TEXT
         )
     ''')
     conn.commit()
-
-    try:
-        cursor.execute('ALTER TABLE audit_history ADD COLUMN violations_detail TEXT')
-        conn.commit()
-    except sqlite3.OperationalError:
-        pass
-
+    cursor.close()
     conn.close()
 
 init_db()
@@ -46,16 +47,17 @@ def save_to_db(client_name, company_name, phone, company_tier, total_fine, selec
     """حفظ سجل العميل في قاعدة البيانات مع تفاصيل المخالفات المختارة"""
     try:
         tier_names = {'a': 'فئة (أ): 50 عامل فأعلى', 'b': 'فئة (ب): 21 إلى 49 عامل', 'c': 'فئة (ج): 20 عامل فأقل'}
-        conn = sqlite3.connect(DB_FILE)
+        conn = get_conn()
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO audit_history 
             (client_name, company_name, phone, company_tier, violations_count, total_fine, compliance_rate, violations_detail)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         ''', (client_name, company_name, phone, tier_names.get(company_tier, company_tier), 
               selected_count, total_fine, f"{compliance_rate}%",
               json.dumps(violations_detail, ensure_ascii=False)))
         conn.commit()
+        cursor.close()
         conn.close()
     except Exception as e:
         print(f"Error saving to DB: {e}")
@@ -168,62 +170,34 @@ def index():
 def clients_list():
     """صفحة لاستعراض والبحث في تقارير العملاء المخزنة"""
     search_query = request.args.get("search", "")
-    conn = sqlite3.connect(DB_FILE)
+    conn = get_conn()
     cursor = conn.cursor()
 
     if search_query:
         cursor.execute('''
-            SELECT id, client_name, company_name, phone, company_tier, violations_count, total_fine, compliance_rate, created_at 
+            SELECT id, client_name, company_name, phone, company_tier, violations_count, total_fine, compliance_rate,
+                   to_char(created_at, 'YYYY-MM-DD HH24:MI:SS')
             FROM audit_history 
-            WHERE client_name LIKE ? OR company_name LIKE ? OR phone LIKE ?
+            WHERE client_name ILIKE %s OR company_name ILIKE %s OR phone ILIKE %s
             ORDER BY created_at DESC
         ''', (f"%{search_query}%", f"%{search_query}%", f"%{search_query}%"))
     else:
         cursor.execute('''
-            SELECT id, client_name, company_name, phone, company_tier, violations_count, total_fine, compliance_rate, created_at 
+            SELECT id, client_name, company_name, phone, company_tier, violations_count, total_fine, compliance_rate,
+                   to_char(created_at, 'YYYY-MM-DD HH24:MI:SS')
             FROM audit_history 
             ORDER BY created_at DESC
         ''')
 
     records = cursor.fetchall()
+    cursor.close()
     conn.close()
     return render_template("clients.html", records=records, search_query=search_query)
 
 @app.route("/report/<int:record_id>")
 def view_report(record_id):
     """عرض تقرير محفوظ سابقاً بنفس المخالفات وقت الفحص، جاهز للطباعة/التصدير"""
-    conn = sqlite3.connect(DB_FILE)
+    conn = get_conn()
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT id, client_name, company_name, phone, company_tier, violations_count, total_fine, compliance_rate, created_at, violations_detail
-        FROM audit_history WHERE id = ?
-    ''', (record_id,))
-    row = cursor.fetchone()
-    conn.close()
-
-    if not row:
-        abort(404)
-
-    violations_detail = []
-    if row[9]:
-        try:
-            violations_detail = json.loads(row[9])
-        except Exception:
-            violations_detail = []
-
-    record = {
-        "id": row[0],
-        "client_name": row[1],
-        "company_name": row[2],
-        "phone": row[3],
-        "company_tier": row[4],
-        "violations_count": row[5],
-        "total_fine": row[6],
-        "compliance_rate": row[7],
-        "created_at": row[8],
-    }
-
-    return render_template("report.html", record=record, violations=violations_detail)
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+        SELECT id, client_name, company_name, phone, company_tier, violations_count,
