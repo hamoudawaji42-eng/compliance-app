@@ -200,4 +200,37 @@ def view_report(record_id):
     conn = get_conn()
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT id, client_name, company_name, phone, company_tier, violations_count,
+        SELECT id, client_name, company_name, phone, company_tier, violations_count, total_fine, compliance_rate,
+               to_char(created_at, 'YYYY-MM-DD HH24:MI:SS'), violations_detail
+        FROM audit_history WHERE id = %s
+    ''', (record_id,))
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    if not row:
+        abort(404)
+
+    violations_detail = []
+    if row[9]:
+        try:
+            violations_detail = json.loads(row[9])
+        except Exception:
+            violations_detail = []
+
+    record = {
+        "id": row[0],
+        "client_name": row[1],
+        "company_name": row[2],
+        "phone": row[3],
+        "company_tier": row[4],
+        "violations_count": row[5],
+        "total_fine": row[6],
+        "compliance_rate": row[7],
+        "created_at": row[8],
+    }
+
+    return render_template("report.html", record=record, violations=violations_detail)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
