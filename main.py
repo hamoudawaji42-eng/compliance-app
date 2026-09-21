@@ -11,13 +11,20 @@ app = Flask(__name__)
 # تحديد المسار المطلق للملفات لضمان عملها بشكل صحيح على خوادم النشر (Render)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 EXCEL_FILE = os.path.join(BASE_DIR, "data.xlsx")
-# رابط قاعدة بيانات Supabase (يتخزن في Render كمتغير باسم DATABASE_URL)
-DATABASE_URL = os.environ.get("DATABASE_URL")
+# كلمة السر تتخزن في Render باسم DB_PASSWORD
+DB_PASSWORD = os.environ.get("DB_PASSWORD", "").strip()
 
 
 def get_conn():
     """فتح اتصال بقاعدة بيانات Supabase"""
-    return psycopg2.connect(DATABASE_URL, sslmode="require")
+    return psycopg2.connect(
+        host="aws-0-ap-southeast-1.pooler.supabase.com",
+        port=5432,
+        dbname="postgres",
+        user="postgres.gckfstqycnikthkfhlhg",
+        password=DB_PASSWORD,
+        sslmode="require",
+    )
 
 def init_db():
     """إنشاء قاعدة البيانات وجدول العملاء والسجلات"""
