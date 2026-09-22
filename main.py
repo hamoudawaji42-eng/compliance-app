@@ -18,10 +18,10 @@ DB_PASSWORD = os.environ.get("DB_PASSWORD", "").strip()
 def get_conn():
     """فتح اتصال بقاعدة بيانات Supabase"""
     return psycopg2.connect(
-        host="aws-0-ap-southeast-1.pooler.supabase.com",
-        port=5432,
+        host="aws-0-ap-south-1.pooler.supabase.com",
+        port=6543,
         dbname="postgres",
-        user="postgres.gckfstqycnikthkfhlhg",
+        user="postgres.gpjospzisrsuzgmkqduj",
         password=DB_PASSWORD,
         sslmode="require",
     )
